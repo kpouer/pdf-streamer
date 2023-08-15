@@ -66,9 +66,12 @@ fn do_stream_pages(doc: &Document,
                 for operation in &content.operations {
                     let op: &str = operation.operator.as_ref();
                     let operator = operators.get(op);
-                    if operator.is_some() {
-                        let operator = operator.unwrap().as_ref();
-                        operator.process(text_context, operation);
+                    match operator {
+                        None => {}
+                        Some(operator) => {
+                            let operator = operator.as_ref();
+                            operator.process(text_context, operation);
+                        }
                     }
                 }
             }
