@@ -26,7 +26,7 @@ pub fn extract_text_from_pages(doc: &Document, pages: &[u32]) -> String {
 
 pub fn stream_document(doc: &Document, text_context: &mut Context) {
     let pages = doc.get_pages();
-    let page_numbers = pages.keys().map(|k| *k).collect::<Vec<u32>>();
+    let page_numbers = pages.keys().cloned().collect::<Vec<u32>>();
     let page_numbers = page_numbers.as_slice();
     do_stream_pages(doc, text_context, get_default_operators(), &pages, page_numbers);
 }
