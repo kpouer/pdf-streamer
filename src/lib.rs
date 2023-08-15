@@ -9,7 +9,7 @@ use crate::operator::{end_text, move_text, next_line, Operator, set_graphic_stat
 use crate::text_context::Context;
 
 pub fn extract_text(doc: &Document) -> String {
-    let mut text_context = Context::new();
+    let mut text_context = Context::default();
     stream_document(doc, &mut text_context);
     text_context.text
 }
@@ -19,7 +19,7 @@ pub fn extract_text_from_page(doc: &Document, page: u32) -> String {
 }
 
 pub fn extract_text_from_pages(doc: &Document, pages: &[u32]) -> String {
-    let mut text_context = Context::new();
+    let mut text_context = Context::default();
     stream_pages(doc, &mut text_context, pages);
     text_context.text
 }

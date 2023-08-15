@@ -6,9 +6,9 @@ pub struct Context {
     pub encodings: BTreeMap<Vec<u8>, String>,
 }
 
-impl Context {
-    pub fn new() -> Context {
-        Context {
+impl Default for Context {
+    fn default() -> Self {
+        Self {
             text: String::new(),
             current_encoding: None,
             encodings: BTreeMap::new(),
