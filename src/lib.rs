@@ -49,20 +49,27 @@ fn get_default_operators() -> HashMap<String, Box<dyn Operator>> {
     operators
 }
 
-fn do_stream_pages(doc: &Document, text_context: &mut Context, operators: HashMap<String, Box<dyn Operator>>, pages: &BTreeMap<u32, ObjectId>, page_numbers: &[u32]) {
+fn do_stream_pages(doc: &Document,
+                   text_context: &mut Context,
+                   operators: HashMap<String, Box<dyn Operator>>,
+                   pages: &BTreeMap<u32, ObjectId>,
+                   page_numbers: &[u32]) {
     for page_number in page_numbers {
         let page_id = pages.get(page_number);
-        if page_id.is_some() {
-            let page_id = *page_id.unwrap();
-            begin_page(text_context, doc, &page_id);
-            let content_data = doc.get_page_content(page_id).unwrap();
-            let content = Content::decode(&content_data).unwrap();
-            for operation in &content.operations {
-                let op: &str = operation.operator.as_ref();
-                let operator = operators.get(op);
-                if operator.is_some() {
-                    let operator = operator.unwrap().as_ref();
-                    operator.process(text_context, operation);
+        match page_id {
+            None => {}
+            Some(page_id) => {
+                let page_id = *page_id;
+                begin_page(text_context, doc, &page_id);
+                let content_data = doc.get_page_content(page_id).unwrap();
+                let content = Content::decode(&content_data).unwrap();
+                for operation in &content.operations {
+                    let op: &str = operation.operator.as_ref();
+                    let operator = operators.get(op);
+                    if operator.is_some() {
+                        let operator = operator.unwrap().as_ref();
+                        operator.process(text_context, operation);
+                    }
                 }
             }
         }
