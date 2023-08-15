@@ -1,0 +1,8 @@
+[package]
+name = "pdf-streamer"
+version = "0.1.0"
+edition = "2021"
+authors = ["Matthieu Casanova"]
+
+[dependencies]
+lopdf = "0.31.0"
