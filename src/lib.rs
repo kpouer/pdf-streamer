@@ -61,11 +61,9 @@ fn do_stream_pages(doc: &Document, text_context: &mut Context, operators: HashMa
                 let op: &str = operation.operator.as_ref();
                 let operator = operators.get(op);
                 if operator.is_some() {
-                    let operator: &Box<dyn Operator> = operator.unwrap();
-                    let operator = operator.as_ref();
+                    let operator = operator.unwrap().as_ref();
                     operator.process(text_context, operation);
                 }
-//                operator.process(doc, operation);
             }
         }
     }
