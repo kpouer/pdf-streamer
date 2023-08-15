@@ -5,6 +5,7 @@ pub(crate) mod show_text;
 pub(crate) mod show_text_adjusted;
 pub(crate) mod end_text;
 pub(crate) mod move_text;
+pub(crate) mod move_text_set_leading;
 
 use lopdf::content::Operation;
 use crate::text_context::Context;

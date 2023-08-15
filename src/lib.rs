@@ -5,7 +5,7 @@ use std::collections::{BTreeMap, HashMap};
 use lopdf::content::Content;
 use lopdf::{Document, Object, ObjectId};
 use operator::set_font_and_size;
-use crate::operator::{end_text, move_text, next_line, Operator, set_graphic_state_params, show_text, show_text_adjusted};
+use crate::operator::{end_text, move_text, move_text_set_leading, next_line, Operator, set_graphic_state_params, show_text, show_text_adjusted};
 use crate::text_context::Context;
 
 pub fn extract_text(doc: &Document) -> String {
@@ -41,6 +41,7 @@ fn get_default_operators() -> HashMap<String, Box<dyn Operator>> {
     let mut operators : HashMap<String, Box<dyn Operator>> = HashMap::new();
     operators.insert(end_text::OP.to_string(), Box::new(end_text::EndText{}));
     operators.insert(move_text::OP.to_string(), Box::new(move_text::MoveText{}));
+    operators.insert(move_text_set_leading::OP.to_string(), Box::new(move_text_set_leading::MoveTextSetLeading{}));
     operators.insert(next_line::OP.to_string(), Box::new(next_line::NextLine{}));
     operators.insert(set_font_and_size::OP.to_string(), Box::new(set_font_and_size::SetFontAndSize{}));
     operators.insert(set_graphic_state_params::OP.to_string(), Box::new(set_graphic_state_params::SetGraphicStateParams{}));

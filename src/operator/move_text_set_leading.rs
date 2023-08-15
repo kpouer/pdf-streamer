@@ -2,10 +2,10 @@ use lopdf::content::Operation;
 use crate::operator::Operator;
 use crate::text_context::Context;
 
-pub(crate) const OP: &str = "Td";
-pub(crate) struct MoveText {}
+pub(crate) const OP: &str = "TD";
+pub(crate) struct MoveTextSetLeading {}
 
-impl Operator for MoveText {
+impl Operator for MoveTextSetLeading {
     fn process(&self, context: &mut Context, _operation: &Operation) {
         context.text.push(' ');
     }
