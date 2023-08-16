@@ -1,28 +1,38 @@
+use std::collections::HashMap;
+use std::str::FromStr;
 use lopdf::Document;
-use pdf_streamer::Options;
+use pdf_streamer::{Options, rules, DebugMode};
 
 #[derive(Default)]
 struct Params {
     filename: String,
     page: u32,
-    debug_operators: bool
+    debug_mode: DebugMode,
+    no_rules: bool,
+    rules_file: Option<String>,
 }
+
 fn main() {
     if let Ok(params) = parse_options() {
         let doc = Document::load(params.filename).unwrap();
-        if params.page > 0 {
-            let options = Options {
-                doc,
-                page: params.page,
-                debug_operators: params.debug_operators
-            };
-            let text = pdf_streamer::extract_text_from_page(&options, params.page);
-            println!("{}", text);
+        let rules;
+        if params.no_rules {
+            rules = params.rules_file
+                .map_or_else(|| HashMap::new(),
+                             |rule_file| rules::custom_rules(rule_file));
         } else {
-            let options = Options::new(doc);
-            let text = pdf_streamer::extract_text(&options);
-            println!("{}", text);
+            rules = params.rules_file
+                .map_or_else(|| rules::default_rules(),
+                             |rule_file| rules::default_and_custom_rules(rule_file));
         }
+        let options = Options {
+            doc,
+            page: params.page,
+            debug_mode: params.debug_mode,
+            rules,
+        };
+        let text = pdf_streamer::extract_text_from_page(&options, params.page);
+        println!("{}", text);
     }
 }
 
@@ -38,8 +48,15 @@ fn parse_options() -> Result<Params, String> {
                 params.page = args[i + 1].parse::<u32>().unwrap();
                 i += 2;
             } else if current_param == "-d" || current_param == "--debug" {
-                params.debug_operators = true;
+                let mode = args[i + 1].clone();
+                params.debug_mode = DebugMode::from_str(mode.as_str()).unwrap();
                 i += 1;
+            } else if current_param == "-n" || current_param == "-no-rule" {
+                params.no_rules = true;
+                i += 1;
+            } else if current_param == "-r" || current_param == "-rules" {
+                params.rules_file = Some(args[i + 1].clone());
+                i += 2;
             }
         } else {
             params.filename = args[i].clone();

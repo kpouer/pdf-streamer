@@ -1,17 +1,19 @@
 mod text_context;
-mod operator;
+pub mod rules;
 
 use std::collections::{BTreeMap, HashMap};
+use std::str::FromStr;
 use lopdf::content::Content;
 use lopdf::{Document, Object, ObjectId};
-use operator::set_font_and_size;
-use crate::operator::{end_text, move_text, move_text_set_leading, next_line, Operator, set_graphic_state_params, show_text, show_text_adjusted};
+use crate::DebugMode::{All, Disabled, Unmatched};
+use crate::rules::operator::Operator;
 use crate::text_context::Context;
 
 pub struct Options {
     pub doc: Document,
     pub page: u32,
-    pub debug_operators: bool
+    pub debug_mode: DebugMode,
+    pub rules: HashMap<String, Box<dyn Operator>>
 }
 
 impl Options {
@@ -19,7 +21,34 @@ impl Options {
         Options {
             doc,
             page: 0,
-            debug_operators: false
+            debug_mode: Disabled,
+            rules: rules::default_rules()
+        }
+    }
+}
+
+
+#[derive(PartialEq)]
+pub enum DebugMode {
+    Disabled,
+    Unmatched,
+    All
+}
+
+impl Default for DebugMode {
+    fn default() -> Self {
+        Disabled
+    }
+}
+
+impl FromStr for DebugMode {
+    type Err = ();
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        match s {
+            "1" => Ok(Unmatched),
+            "2" => Ok(All),
+            _ => Ok(Disabled)
         }
     }
 }
@@ -44,31 +73,16 @@ pub fn stream_document(options: &Options, text_context: &mut Context) {
     let pages = options.doc.get_pages();
     let page_numbers = pages.keys().cloned().collect::<Vec<u32>>();
     let page_numbers = page_numbers.as_slice();
-    do_stream_pages(options, text_context, get_default_operators(), &pages, page_numbers);
+    do_stream_pages(options, text_context, &pages, page_numbers);
 }
 
 pub fn stream_pages(options: &Options, text_context: &mut Context, page_numbers: &[u32]) {
     let pages = options.doc.get_pages();
-    let  operators = get_default_operators();
-    do_stream_pages(options, text_context, operators, &pages, page_numbers);
-}
-
-fn get_default_operators() -> HashMap<String, Box<dyn Operator>> {
-    let mut operators : HashMap<String, Box<dyn Operator>> = HashMap::new();
-    operators.insert(end_text::OP.to_string(), Box::new(end_text::EndText{}));
-    operators.insert(move_text::OP.to_string(), Box::new(move_text::MoveText{}));
-    operators.insert(move_text_set_leading::OP.to_string(), Box::new(move_text_set_leading::MoveTextSetLeading{}));
-    operators.insert(next_line::OP.to_string(), Box::new(next_line::NextLine{}));
-    operators.insert(set_font_and_size::OP.to_string(), Box::new(set_font_and_size::SetFontAndSize{}));
-    operators.insert(set_graphic_state_params::OP.to_string(), Box::new(set_graphic_state_params::SetGraphicStateParams{}));
-    operators.insert(show_text::OP.to_string(), Box::new(show_text::ShowText{}));
-    operators.insert(show_text_adjusted::OP.to_string(), Box::new(show_text_adjusted::ShowText{}));
-    operators
+    do_stream_pages(options, text_context, &pages, page_numbers);
 }
 
 fn do_stream_pages(options: &Options,
                    text_context: &mut Context,
-                   operators: HashMap<String, Box<dyn Operator>>,
                    pages: &BTreeMap<u32, ObjectId>,
                    page_numbers: &[u32]) {
     for page_number in page_numbers {
@@ -82,16 +96,20 @@ fn do_stream_pages(options: &Options,
                 let content = Content::decode(&content_data).unwrap();
                 for operation in &content.operations {
                     let op: &str = operation.operator.as_ref();
-                    if options.debug_operators {
-                        text_context.text.push_str(format!("<{}>", op).as_str());
-                    }
-                    let operator = operators.get(op);
+                    let operator = options.rules.get(op);
                     match operator {
-                        None => {}
+                        None => {
+                            if options.debug_mode != Disabled {
+                                text_context.text.push_str(format!("<{}>", op).as_str());
+                            }
+                        }
                         Some(operator) => {
+                            if options.debug_mode == All {
+                                text_context.text.push_str(format!("<{}>", op).as_str());
+                            }
                             let operator = operator.as_ref();
                             operator.process(text_context, operation);
-                            if options.debug_operators {
+                            if options.debug_mode == All {
                                 text_context.text.push_str(format!("</{}>", op).as_str());
                             }
                         }
