@@ -8,33 +8,49 @@ use operator::set_font_and_size;
 use crate::operator::{end_text, move_text, move_text_set_leading, next_line, Operator, set_graphic_state_params, show_text, show_text_adjusted};
 use crate::text_context::Context;
 
-pub fn extract_text(doc: &Document) -> String {
+pub struct Options {
+    pub doc: Document,
+    pub page: u32,
+    pub debug_operators: bool
+}
+
+impl Options {
+    pub fn new(doc: Document) -> Self {
+        Options {
+            doc,
+            page: 0,
+            debug_operators: false
+        }
+    }
+}
+
+pub fn extract_text(options: &Options) -> String {
     let mut text_context = Context::default();
-    stream_document(doc, &mut text_context);
+    stream_document(options, &mut text_context);
     text_context.text
 }
 
-pub fn extract_text_from_page(doc: &Document, page: u32) -> String {
-    extract_text_from_pages(doc, &[page])
+pub fn extract_text_from_page(options: &Options, page: u32) -> String {
+    extract_text_from_pages(options, &[page])
 }
 
-pub fn extract_text_from_pages(doc: &Document, pages: &[u32]) -> String {
+pub fn extract_text_from_pages(options: &Options, pages: &[u32]) -> String {
     let mut text_context = Context::default();
-    stream_pages(doc, &mut text_context, pages);
+    stream_pages(options, &mut text_context, pages);
     text_context.text
 }
 
-pub fn stream_document(doc: &Document, text_context: &mut Context) {
-    let pages = doc.get_pages();
+pub fn stream_document(options: &Options, text_context: &mut Context) {
+    let pages = options.doc.get_pages();
     let page_numbers = pages.keys().cloned().collect::<Vec<u32>>();
     let page_numbers = page_numbers.as_slice();
-    do_stream_pages(doc, text_context, get_default_operators(), &pages, page_numbers);
+    do_stream_pages(options, text_context, get_default_operators(), &pages, page_numbers);
 }
 
-pub fn stream_pages(doc: &Document, text_context: &mut Context, page_numbers: &[u32]) {
-    let pages = doc.get_pages();
+pub fn stream_pages(options: &Options, text_context: &mut Context, page_numbers: &[u32]) {
+    let pages = options.doc.get_pages();
     let  operators = get_default_operators();
-    do_stream_pages(doc, text_context, operators, &pages, page_numbers);
+    do_stream_pages(options, text_context, operators, &pages, page_numbers);
 }
 
 fn get_default_operators() -> HashMap<String, Box<dyn Operator>> {
@@ -50,7 +66,7 @@ fn get_default_operators() -> HashMap<String, Box<dyn Operator>> {
     operators
 }
 
-fn do_stream_pages(doc: &Document,
+fn do_stream_pages(options: &Options,
                    text_context: &mut Context,
                    operators: HashMap<String, Box<dyn Operator>>,
                    pages: &BTreeMap<u32, ObjectId>,
@@ -61,17 +77,23 @@ fn do_stream_pages(doc: &Document,
             None => {}
             Some(page_id) => {
                 let page_id = *page_id;
-                begin_page(text_context, doc, &page_id);
-                let content_data = doc.get_page_content(page_id).unwrap();
+                begin_page(options, text_context, &page_id);
+                let content_data = options.doc.get_page_content(page_id).unwrap();
                 let content = Content::decode(&content_data).unwrap();
                 for operation in &content.operations {
                     let op: &str = operation.operator.as_ref();
+                    if options.debug_operators {
+                        text_context.text.push_str(format!("<{}>", op).as_str());
+                    }
                     let operator = operators.get(op);
                     match operator {
                         None => {}
                         Some(operator) => {
                             let operator = operator.as_ref();
                             operator.process(text_context, operation);
+                            if options.debug_operators {
+                                text_context.text.push_str(format!("</{}>", op).as_str());
+                            }
                         }
                     }
                 }
@@ -80,8 +102,8 @@ fn do_stream_pages(doc: &Document,
     }
 }
 
-fn begin_page(text_context: &mut Context, doc: &Document, page_id: &ObjectId) {
-    let fonts = doc.get_page_fonts(*page_id);
+fn begin_page(options: &Options, text_context: &mut Context, page_id: &ObjectId) {
+    let fonts = options.doc.get_page_fonts(*page_id);
     text_context.encodings = fonts
         .into_iter()
         .map(|(name, font)| (name, font.get_font_encoding().to_string()))
