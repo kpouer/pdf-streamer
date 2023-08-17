@@ -1,9 +1,8 @@
 use lopdf::content::Operation;
 use lopdf::Error;
-use crate::operator::Operator;
+use crate::rules::operator::Operator;
 use crate::text_context::Context;
 
-pub(crate) const OP: &str = "Tf";
 pub(crate) struct SetFontAndSize {}
 
 impl Operator for SetFontAndSize {
